@@ -10,17 +10,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/koa": "^2.11.6",
-    "@types/koa-logger": "^3.1.1",
-    "@types/koa-router": "^7.4.1",
-    "@types/koa-static": "^4.0.1",
+    "@types/async-busboy": "^0.7.0",
     "@types/node": "^14.14.7",
-    "co-busboy": "^1.4.1",
-    "koa": "^2.13.0",
-    "koa-body": "^4.2.0",
-    "koa-logger": "^3.2.1",
-    "koa-router": "^10.0.0",
-    "koa-static": "^5.0.0",
+    "async-busboy": "^1.0.1",
     "typescript": "^4.0.5"
   }
 }

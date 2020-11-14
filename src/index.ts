@@ -1,85 +1,77 @@
-import Koa from "koa";
-import Router from "koa-router";
-import KoaBody from "koa-body";
-import KoaLogger from "koa-logger";
-import KoaServeStatic from "koa-static";
-//@ts-ignore
-import parse from "co-busboy";
+import http, { IncomingMessage, ServerResponse } from "http";
+import asyncBusboy from "async-busboy";
+import path from "path";
+import fs from "fs";
 
-import * as path from "path";
+const PORT = 8801;
 
-const cwd = process.cwd();
-const root = path.resolve(cwd, "..");
-
-const createServer = () => {
-  const app = new Koa();
-  const router = new Router();
-
-  router.post("/upload.do", function* (ctx, next) {
-    try {
-      const parts = parse(this, {
-        autoFields: true,
-      });
-      let part,
-        files = [];
-      while ((part = yield parts)) {
-        files.push(part.filename);
-        part.resume();
-      }
-      let ret = "";
-      this.status = 200;
-      this.set("Content-Type", "text/html");
-      yield wait(2000);
-      if (parts.fields[0] && parts.fields[0][0] === "_documentDomain") {
-        ret += '<script>document.domain="' + parts.fields[0][1] + '";</script>';
-      }
-      ret += JSON.stringify(files);
-      console.log(ret);
-      this.body = ret;
-    } catch (e) {
-      this.body = e.stack;
+const handleRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse
+) => {
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Content-Length, Authorization, Accept, X-Requested-With , yourHeaderFeild"
+  );
+  response.setHeader(
+    "Access-Control-Allow-Methods",
+    "PUT, POST, GET, DELETE, OPTIONS"
+  );
+  if (request.method == "OPTIONS") {
+    response.statusCode = 200;
+    response.end("Hello!");
+    return;
+  }
+  const route = request.url;
+  console.log("request in");
+  if (request.method === "GET") {
+    console.log("method [GET]");
+    if (route === "/test") {
+      response.statusCode = 200;
+      response.end("Hello!");
+      return;
     }
-  });
-  router.get("/test", function (ctx, next) {
-    console.log("test", ctx.params);
-    ctx.status = 200;
-    ctx.body = "hello!";
-    next();
-  });
-  router.post("/test", (ctx, next) => {
-    ctx.status = 200;
-    ctx.body = "<div>111</div>";
-    next();
-  });
+  }
+  if (request.method === "POST") {
+    console.log("method [POST]");
+    if (route === "/upload") {
+      console.log("path", route);
+      try {
+        const { files, fields } = await asyncBusboy(request);
+        response.writeHead(200, { "Content-Type": "application/json" });
+        const file = files[0] as any;
+        var saveTo = path.join(__dirname, "../uploads/" + file.filename);
+        file.pipe(fs.createWriteStream(saveTo));
+        if (file) {
+          response.end(
+            JSON.stringify({
+              data: {
+                name: file.filename,
+                path: file.path,
+                url: "/uploads/" + file.filename,
+              },
+            })
+          );
+        } else {
+          response.end(
+            JSON.stringify({
+              data: null,
+            })
+          );
+        }
 
-  app.use(KoaLogger());
-  app.use(
-    KoaBody({
-      formidable: { uploadDir: path.join(root, "tmp") },
-      multipart: true,
-    })
-  );
-  app.use(router.routes()).use(router.allowedMethods());
-  app.use(
-    KoaServeStatic(root, {
-      hidden: true,
-    })
-  );
-  return app;
+        return;
+      } catch (e) {
+        response.end("something error: " + e);
+        return;
+      }
+    }
+  }
+  response.end("unhandle!");
 };
 
-const wait = (time: number) => {
-  return function (callback: () => void) {
-    setTimeout(callback, time);
-  };
-};
-
-const app = createServer();
-
-const port = 8801;
-app.listen(port);
-console.log("listen at " + port);
-
-process.on("uncaughtException", (err) => {
-  console.log(err.stack);
+var server = http.createServer(handleRequest);
+server.listen(PORT, function () {
+  console.log("Server listening on: http://localhost:%s", PORT);
 });
