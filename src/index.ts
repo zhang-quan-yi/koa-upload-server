@@ -24,9 +24,7 @@ const handleRequest = async (
     return;
   }
   const route = request.url;
-  console.log("request in");
   if (request.method === "GET") {
-    console.log("method [GET]");
     if (route === "/test") {
       response.statusCode = 200;
       response.end("Hello!");
@@ -34,9 +32,7 @@ const handleRequest = async (
     }
   }
   if (request.method === "POST") {
-    console.log("method [POST]");
     if (route === "/upload") {
-      console.log("path", route);
       try {
         const { files, fields } = await asyncBusboy(request);
         response.writeHead(200, { "Content-Type": "application/json" });
